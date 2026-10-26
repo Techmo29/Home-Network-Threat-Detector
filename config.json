@@ -1,0 +1,17 @@
+{
+  "network": {
+    "interface": "eth0",
+    "subnet": "192.168.1.0/24",
+    "scan_timeout": 2.0
+  },
+  "monitoring": {
+    "dns_port": 53,
+    "port_scan_rate_limit": 100,
+    "traffic_spike_threshold_mb": 50.0
+  },
+  "alerts": {
+    "log_file": "threat_detector.log",
+    "log_level": "WARNING",
+    "desktop_notifications_enabled": true
+  }
+}
