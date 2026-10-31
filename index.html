@@ -1,9 +1,107 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>My Local Site</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Network Threat Detector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
-  <p>Monitor Network Remotely</p>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col">
+
+    <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-shield-halved text-cyan-400 text-2xl"></i>
+            <h1 class="text-xl font-bold tracking-wide">Threat Detector <span class="text-xs px-2 py-0.5 bg-cyan-950 text-cyan-400 border border-cyan-800 rounded-full ml-2">v1.0 Active</span></h1>
+        </div>
+        <div class="flex items-center space-x-4">
+            <span class="flex items-center text-sm text-emerald-400">
+                <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse mr-2"></span> System Online
+            </span>
+        </div>
+    </header>
+
+    <main class="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+                <div class="flex justify-between items-center text-slate-400 mb-2">
+                    <span class="text-sm font-medium">Active Devices</span>
+                    <i class="fa-solid fa-network-wired text-blue-400"></i>
+                </div>
+                <div class="text-2xl font-bold" id="metric-devices">12</div>
+                <div class="text-xs text-emerald-400 mt-1"><i class="fa-solid fa-arrow-up"></i> 0 new unknowns</div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+                <div class="flex justify-between items-center text-slate-400 mb-2">
+                    <span class="text-sm font-medium">Open Ports Scanned</span>
+                    <i class="fa-solid fa-folder-open text-amber-400"></i>
+                </div>
+                <div class="text-2xl font-bold" id="metric-ports">48</div>
+                <div class="text-xs text-slate-400 mt-1">Last scan: 5m ago</div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+                <div class="flex justify-between items-center text-slate-400 mb-2">
+                    <span class="text-sm font-medium">DNS Queries Logged</span>
+                    <i class="fa-solid fa-globe text-purple-400"></i>
+                </div>
+                <div class="text-2xl font-bold" id="metric-dns">1,240</div>
+                <div class="text-xs text-slate-400 mt-1">Monitoring active domains</div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+                <div class="flex justify-between items-center text-slate-400 mb-2">
+                    <span class="text-sm font-medium">Anomalies Detected</span>
+                    <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
+                </div>
+                <div class="text-2xl font-bold text-rose-400" id="metric-anomalies">0</div>
+                <div class="text-xs text-emerald-400 mt-1">Traffic normal</div>
+            </div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm flex flex-col h-96">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-800">
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300 flex items-center">
+                    <i class="fa-solid fa-terminal mr-2 text-cyan-400"></i> Live Security Log Stream
+                </h2>
+                <button onclick="clearLogs()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded transition">Clear View</button>
+            </div>
+            
+            <div id="log-container" class="flex-1 bg-slate-950 font-mono text-xs text-slate-300 p-4 rounded-lg overflow-y-auto space-y-2 border border-slate-900">
+                <div class="text-slate-500">[11:54:01] System initialized. Starting ARP monitor and traffic anomaly detector...</div>
+                <div class="text-emerald-400">[11:54:02] [OK] Device scan complete. 12 devices accounted for.</div>
+                <div class="text-cyan-400">[11:54:05] [INFO] DNS monitor active on interface. Listening for anomalous queries.</div>
+            </div>
+        </div>
+
+    </main>
+    <footer class="bg-slate-900 border-t border-slate-800 text-center py-4 text-xs text-slate-500">
+        Home Network Threat Detector &bull; Secured Local Dashboard
+    </footer>
+
+    <script>
+
+        function appendLog(message, type = 'info') {
+            const container = document.getElementById('log-container');
+            const time = new Date().toTimeString().split(' ')[0];
+            const div = document.createElement('div');
+            
+            let colorClass = "text-slate-300";
+            if (type === 'warn') colorClass = "text-amber-400";
+            if (type === 'error') colorClass = "text-rose-400";
+            if (type === 'success') colorClass = "text-emerald-400";
+
+            div.className = colorClass;
+            div.textContent = `[${time}] ${message}`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('log-container').innerHTML = '';
+            appendLog("Logs cleared by user.", "info");
+        }
+    </script>
 </body>
 </html>
