@@ -2,50 +2,85 @@ import sqlite3
 import requests
 import datetime
 import os
+import json
+import threading
+import time
 
 DB_NAME = "threat_logs.db"
 
 class ThreatNotifier:
-    def __init__(self, discord_webhook_url=None, telegram_token=None, telegram_chat_id=None):
+    def __init__(self, config_path="config.json", discord_webhook_url=None, telegram_token=None, telegram_chat_id=None):
+        # 1. Load from config.json if explicit arguments aren't provided
         self.discord_url = discord_webhook_url
         self.tg_token = telegram_token
         self.tg_chat_id = telegram_chat_id
+        
+        if os.path.exists(config_path) and (not self.discord_url or not self.tg_token):
+            try:
+                with open(config_path, "r") as f:
+                    config = json.load(f)
+                    self.discord_url = self.discord_url or config.get("discord_webhook_url")
+                    self.tg_token = self.tg_token or config.get("telegram_token")
+                    self.tg_chat_id = self.tg_chat_id or config.get("telegram_chat_id")
+            except Exception as e:
+                print(f"[-] Error reading config file: {e}")
+
+        # 2. Throttling cache to prevent notification spam (Key: threat_key, Value: timestamp)
+        self._recent_alerts = {}
+        self._throttle_lock = threading.Lock()
+        self.throttle_window = 60  # seconds
+
         self._init_db()
 
     def _init_db(self):
-        """Initialize the local SQLite database for persistent threat logging."""
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS threats (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT,
-                threat_type TEXT,
-                severity TEXT,
-                details TEXT
-            )
-        ''')
-        conn.commit()
-        conn.close()
+        """Initialize the local SQLite database with WAL mode for concurrency."""
+        try:
+            with sqlite3.connect(DB_NAME) as conn:
+                # Enable Write-Ahead Logging to support concurrent multi-script writes
+                conn.execute("PRAGMA journal_mode=WAL;")
+                cursor = conn.cursor()
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS threats (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        timestamp TEXT,
+                        threat_type TEXT,
+                        severity TEXT,
+                        details TEXT
+                    )
+                ''')
+                conn.commit()
+        except Exception as e:
+            print(f"[-] Database Initialization Error: {e}")
 
     def log_threat(self, threat_type, severity, details):
-        """Save threat event to local database and trigger alerts."""
+        """Save threat event to local database and trigger throttled async alerts."""
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        # 1. Save to Database
+        # 1. Save to Database using safe context managers
         try:
-            conn = sqlite3.connect(DB_NAME)
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO threats (timestamp, threat_type, severity, details) VALUES (?, ?, ?, ?)",
-                (timestamp, threat_type, severity, details)
-            )
-            conn.commit()
-            conn.close()
+            with sqlite3.connect(DB_NAME) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "INSERT INTO threats (timestamp, threat_type, severity, details) VALUES (?, ?, ?, ?)",
+                    (timestamp, threat_type, severity, details)
+                )
+                conn.commit()
         except Exception as e:
-            print(f"[-] Database Error: {e}")
+            print(f"[-] Database Write Error: {e}")
 
-        # 2. Format Message
+        # Print locally immediately
+        print(f"[{severity}] {threat_type}: {details}")
+
+        # 2. Check Throttling / Rate-Limiting
+        alert_key = f"{threat_type}:{details}"
+        now = time.time()
+        with self._throttle_lock:
+            last_sent = self._recent_alerts.get(alert_key, 0)
+            if now - last_sent < self.throttle_window:
+                return  # Suppress duplicate alert within the time window
+            self._recent_alerts[alert_key] = now
+
+        # 3. Format Message
         alert_message = (
             f"🚨 **SECURITY ALERT: {threat_type}** 🚨\n"
             f"• **Severity:** {severity}\n"
@@ -53,13 +88,11 @@ class ThreatNotifier:
             f"• **Details:** {details}"
         )
 
-        print(f"[{severity}] {threat_type}: {details}")
-
-        # 3. Send Notifications
+        # 4. Dispatch Notifications asynchronously via background threads
         if self.discord_url:
-            self._send_discord(alert_message)
+            threading.Thread(target=self._send_discord, args=(alert_message,), daemon=True).start()
         if self.tg_token and self.tg_chat_id:
-            self._send_telegram(alert_message)
+            threading.Thread(target=self._send_telegram, args=(alert_message,), daemon=True).start()
 
     def _send_discord(self, message):
         """Sends rich-text alerts to a Discord channel via webhook."""
@@ -88,7 +121,6 @@ class ThreatNotifier:
 
 # Example integration test
 if __name__ == "__main__":
-    # Initialize without credentials to test local DB logging first
     notifier = ThreatNotifier()
     notifier.log_threat(
         threat_type="Unauthorized Port Scan",
