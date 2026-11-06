@@ -3,4 +3,5 @@ Features:
 2. Unauthorized port scanning
 3. Unusual traffic detection
 4. Monitor dns
-5. Alerts
+5. Alerts to mobile
+
