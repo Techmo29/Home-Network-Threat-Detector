@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  threat-detector:
+    build: .
+    container_name: home-network-threat-detector
+    restart: unless-stopped
+    # Use host network mode so Scapy can capture raw packets on the local interface
+    network_mode: "host"
+    # Grant permissions required for raw socket access and packet manipulation
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      # Mount configuration and logs locally so they persist outside the container
+      - ./config.json:/app/config.json
+      - ./logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
