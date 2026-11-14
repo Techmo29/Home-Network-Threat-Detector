@@ -5,7 +5,7 @@
     "scan_timeout": 2.0
   },
   "monitoring": {
-    "dns_port": 53,
+    "dns_port": 54,
     "port_scan_rate_limit": 100,
     "traffic_spike_threshold_mb": 50.0
   },
