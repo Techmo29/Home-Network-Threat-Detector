@@ -188,7 +188,7 @@ class DnsFrame(ctk.CTkFrame):
         desc = ctk.CTkLabel(self, text="Live tracker for local network DNS lookups and potential tunneling/malicious domains.", font=ctk.CTkFont(size=13))
         desc.pack(anchor="w", pady=(0, 10))
 
-        self.dns_textbox = ctk.CTkTextbox(self, height=350)
+        self.dns_textbox = ctk.CTkTextbox(self, height=400)
         self.dns_textbox.pack(fill="both", expand=True, pady=10)
         self.dns_textbox.insert("0.0", "Timestamp\t\tSource IP\t\tRequested Domain\t\tStatus\n" + "-"*75 + "\n")
         self.dns_textbox.insert("end", "11:45:01\t\t192.168.1.15\t\tapi.github.com\t\tAllowed\n")
