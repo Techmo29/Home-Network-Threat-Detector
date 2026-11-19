@@ -88,7 +88,7 @@ def parse_ports(port_arg):
 
 
 def port_scan(target, ports, timeout=1.0, workers=50, grab_banners=False, verbose=False):
-    """Scan a list of TCP ports using a bounded thread pool with progress updates."""
+    """Scan a list of TCP ports using a bounded thread pool with progress updates. Maps netword."""
     ports = list(ports)
 
     if not target.strip():
